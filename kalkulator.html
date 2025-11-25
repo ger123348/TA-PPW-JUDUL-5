@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Ger</title>
+
+  <style>
+    *{box-sizing:border-box;font-family:system-ui;}
+    body{
+      margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:#0d0d0d;color:#fff;padding:15px;
+    }
+    .calculator{
+      background:#111;border-radius:18px;padding:18px;width:100%;max-width:360px;
+      box-shadow:0 18px 35px rgba(255,140,0,0.25);border:1px solid #ff8b00;
+      display:flex;flex-direction:column;gap:12px;
+    }
+    .calc-header{display:flex;justify-content:space-between;}
+    .calc-title{color:#ff8b00;font-weight:600}
+    .history{background:#000;border-radius:10px;padding:8px 10px;max-height:80px;
+      overflow-y:auto;font-size:.75rem;border:1px solid #2b2b2b;}
+    .history-item{display:flex;justify-content:space-between;color:#ffebc4;}
+    .display{
+      background:#000;border-radius:12px;padding:8px 12px;text-align:right;
+      border:1px solid #333;min-height:56px;display:flex;flex-direction:column;
+    }
+    .display-expression{opacity:.6;font-size:.8rem;color:#ffb75e}
+    .display-value{font-size:1.8rem;font-weight:600;color:#ff8b00}
+    .buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    button{
+      border:none;border-radius:12px;padding:14px 10px;font-size:1rem;cursor:pointer;
+      background:#1c1c1c;color:#fff;border:1px solid #262626;}
+    button:hover{background:#272727}
+    button.operator{background:#ff8b00;color:#000;font-weight:bold}
+    button.equal{background:#ffa500;color:#000;font-weight:bold}
+    button.function{background:#333}
+    button.memory{background:#262626;font-size:.8rem}
+    .wide{grid-column:span 2}
+  </style>
+</head>
+
+<body>
+  <div class="calculator">
+
+    <div class="calc-header">
+      <div>
+        <div class="calc-title">Kalkulator</div>
+        <div id="memory-text" style="font-size:.8rem;opacity:.7">Memory: kosong</div>
+      </div>
+      <div style="font-size:.75rem;opacity:.75">History (maks 5)</div>
+    </div>
+
+    <div id="history" class="history"></div>
+
+    <div class="display">
+      <div id="exp" class="display-expression"></div>
+      <div id="val" class="display-value">0</div>
+    </div>
+
+    <div class="buttons">
+      <button class="memory" data-mem="MC">MC</button>
+      <button class="memory" data-mem="MR">MR</button>
+      <button class="memory" data-mem="M+">M+</button>
+      <button class="memory" data-mem="M-">M-</button>
+
+      <button class="function" data-act="C">C</button>
+      <button class="function" data-act="CE">CE</button>
+      <button class="function" data-act="BS">⌫</button>
+      <button class="operator" data-op="÷">÷</button>
+
+      <button data-num="7">7</button>
+      <button data-num="8">8</button>
+      <button data-num="9">9</button>
+      <button class="operator" data-op="×">×</button>
+
+      <button data-num="4">4</button>
+      <button data-num="5">5</button>
+      <button data-num="6">6</button>
+      <button class="operator" data-op="-">-</button>
+
+      <button data-num="1">1</button>
+      <button data-num="2">2</button>
+      <button data-num="3">3</button>
+      <button class="operator" data-op="+">+</button>
+
+      <button class="wide" data-num="0">0</button>
+      <button data-dec=".">.</button>
+      <button class="equal" data-eq="=">=</button>
+    </div>
+  </div>
+
+<script>
+  const val = document.getElementById("val");
+  const exp = document.getElementById("exp");
+  const historyBox = document.getElementById("history");
+  const memoryText = document.getElementById("memory-text");
+
+  let cur = "0", expr = "", last = null;
+  let history = [], mem = 0;
+
+  function refresh(){
+    val.textContent = cur;
+    exp.textContent = expr.replace(/\*/g,"×").replace(/\//g,"÷");
+    memoryText.textContent = mem ? `Memory: ${mem}` : "Memory: kosong";
+
+    historyBox.innerHTML = "";
+    history.slice(-5).forEach(h=>{
+      let d=document.createElement("div");
+      d.className="history-item";
+      d.innerHTML = `<span>${h.e}</span><span>= ${h.r}</span>`;
+      historyBox.prepend(d);
+    });
+  }
+
+  function addNum(n){
+    if(last==="="){expr=""; cur=n}
+    else if(cur==="0" || last==="op") cur=n;
+    else cur+=n;
+    last="num"; refresh();
+  }
+
+  function addDec(){
+    if(last==="op" || last==="=") cur="0.";
+    else if(!cur.includes(".")) cur += ".";
+    last="num"; refresh();
+  }
+
+  function addOp(o){
+    let jsOp = o==="×" ? "*" : o==="÷" ? "/" : o;
+    if(last==="op") expr = expr.slice(0,-1) + jsOp;
+    else expr += cur + jsOp;
+    last="op"; refresh();
+  }
+
+  function calc(){
+    let finalExp = expr + (last!=="op" ? cur : "");
+    try{
+      let result = Function("return "+finalExp)();
+      if(!isFinite(result)) cur="Error";
+      else{
+        result = Number(result.toFixed(10)) * 1;
+        history.push({e:finalExp.replace(/\*/g,"×").replace(/\//g,"÷"), r:result});
+        cur = String(result);
+      }
+    }catch{cur="Error"}
+    expr=""; last="="; refresh();
+  }
+
+  function clearAll(){cur="0"; expr=""; last=null; refresh();}
+  function clearEntry(){cur="0"; last="num"; refresh();}
+  function backspace(){
+    if(last==="=") return;
+    cur = cur.length<=1 ? "0" : cur.slice(0,-1);
+    refresh();
+  }
+
+  function memory(act){
+    let v = parseFloat(cur);
+    if(act==="MC") mem=0;
+    if(act==="MR") cur=String(mem||0);
+    if(act==="M+" && !isNaN(v)) mem+=v;
+    if(act==="M-" && !isNaN(v)) mem-=v;
+    last="num"; refresh();
+  }
+
+  document.addEventListener("click",e=>{
+    let t=e.target;
+    if(t.dataset.num) addNum(t.dataset.num);
+    if(t.dataset.dec) addDec();
+    if(t.dataset.op) addOp(t.dataset.op);
+    if(t.dataset.eq) calc();
+    if(t.dataset.act==="C") clearAll();
+    if(t.dataset.act==="CE") clearEntry();
+    if(t.dataset.act==="BS") backspace();
+    if(t.dataset.mem) memory(t.dataset.mem);
+  });
+
+  document.addEventListener("keydown",e=>{
+    if(/[0-9]/.test(e.key)) addNum(e.key);
+    if(e.key===".") addDec();
+    if(e.key==="+"||e.key==="-"||e.key==="*"||e.key==="/"){
+      let m = e.key==="*"?"×":e.key==="/"?"÷":e.key;
+      addOp(m);
+    }
+    if(e.key==="Enter") calc();
+    if(e.key==="Escape") clearAll();
+    if(e.key==="Backspace") backspace();
+  });
+
+  refresh();
+</script>
+
+</body>
+</html>
